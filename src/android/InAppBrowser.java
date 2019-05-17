@@ -85,6 +85,16 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.security.KeyChain;
+import android.security.KeyChainAliasCallback;
+import android.security.KeyChainException;
+import android.webkit.ClientCertRequest;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import android.os.AsyncTask;
+
 @SuppressLint("SetJavaScriptEnabled")
 public class InAppBrowser extends CordovaPlugin {
 
@@ -1482,6 +1492,75 @@ public class InAppBrowser extends CordovaPlugin {
 
             // By default handle 401 like we'd normally do!
             super.onReceivedHttpAuthRequest(view, handler, host, realm);
+        }
+
+        public static final String SP_KEY_ALIAS = "SP_KEY_ALIAS";
+
+        @Override
+        public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
+
+            LOG.w(LOG_TAG, "onReceivedClientCertRequest() Called!");
+
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+            final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
+            final String alias = sp.getString(SP_KEY_ALIAS, null);
+
+            if(alias == null) {
+                KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+            } else {
+                AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
+                    @Override
+                    protected String doInBackground(Void... params) {
+                        try {
+                            callback.alias(alias);
+                        } catch (Exception transientEx) {
+                            LOG.w(LOG_TAG, transientEx.toString());
+                        }
+                        return "";
+                    }
+
+                    @Override
+                    protected void onPostExecute(String token) {
+                        LOG.w(LOG_TAG, "Access token retrieved:" + token);
+                    }
+
+                };
+                task.execute();
+            }
+        }
+
+        class AliasCallback implements KeyChainAliasCallback {
+            private final SharedPreferences mPreferences;
+            private final ClientCertRequest mRequest;
+            private final Context mContext;
+
+            public AliasCallback(Context context, ClientCertRequest request) {
+                mRequest = request;
+                mContext = context;
+                mPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
+            }
+
+            @Override
+            public void alias(String alias) {
+                try {
+                    if (alias != null) {
+                        SharedPreferences.Editor edt = mPreferences.edit();
+                        edt.putString(SP_KEY_ALIAS, alias);
+                        edt.apply();
+                        PrivateKey pk = KeyChain.getPrivateKey(mContext, alias);
+                        X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
+                        mRequest.proceed(pk, cert);
+                    } else {
+                        mRequest.proceed(null, null);
+                    }
+                } catch (KeyChainException e) {
+                    String errorText = "Failed to load certificates";
+                    LOG.w(LOG_TAG, errorText, e);
+                } catch (InterruptedException e) {
+                    String errorText = "InterruptedException while loading certificates";
+                    LOG.w(LOG_TAG, errorText, e);
+                }
+            }
         }
     }
 }
