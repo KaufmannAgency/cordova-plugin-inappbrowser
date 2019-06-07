@@ -1594,7 +1594,7 @@ public class InAppBrowser extends CordovaPlugin {
             message += " Do you want to continue anyway?";
 
             LOG.w(LOG_TAG, message);
-            LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString());
+            LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString()));
 
             builder.setTitle("SSL Certificate Error");
             builder.setMessage(message);
