@@ -95,6 +95,12 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import android.os.AsyncTask;
 
+import android.webkit.SslErrorHandler;
+import android.app.AlertDialog;
+import android.net.http.SslError;
+import android.content.DialogInterface;
+
+
 @SuppressLint("SetJavaScriptEnabled")
 public class InAppBrowser extends CordovaPlugin {
 
@@ -1561,6 +1567,51 @@ public class InAppBrowser extends CordovaPlugin {
                     LOG.w(LOG_TAG, errorText, e);
                 }
             }
+        }
+
+        @Override
+        public void onReceivedSslError(WebView view, final SslErrorHandler handler, SslError error) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+            String message = "SSL Certificate error (code=" + error.getPrimaryError() + "): " + error.toString()
+                    + " on url: " + error.getUrl() + " - ";
+            switch (error.getPrimaryError()) {
+                case SslError.SSL_UNTRUSTED:
+                    message += "The certificate authority is not trusted.";
+                    break;
+                case SslError.SSL_EXPIRED:
+                    message += "The certificate has expired.";
+                    break;
+                case SslError.SSL_IDMISMATCH:
+                    message += "The certificate Hostname mismatch.";
+                    break;
+                case SslError.SSL_NOTYETVALID:
+                    message += "The certificate is not yet valid.";
+                    break;
+                default:
+                    message += "Check error code meaning from: https://developer.android.com/reference/android/net/http/SslError.";
+                    break;
+            }
+            message += " Do you want to continue anyway?";
+
+            LOG.w(LOG_TAG, message);
+            LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString());
+
+            builder.setTitle("SSL Certificate Error");
+            builder.setMessage(message);
+            builder.setPositiveButton("continue", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    handler.proceed();
+                }
+            });
+            builder.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    handler.cancel();
+                }
+            });
+            final AlertDialog dialog = builder.create();
+            dialog.show();
         }
     }
 }
