@@ -1571,43 +1571,45 @@ public class InAppBrowser extends CordovaPlugin {
 
         @Override
         public void onReceivedSslError(WebView view, final SslErrorHandler handler, SslError error) {
+            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+
             final AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
-            String message = "SSL Certificate error (code=" + error.getPrimaryError() + "): " + error.toString()
-                    + " on url: " + error.getUrl() + " - ";
+            LOG.w(LOG_TAG, "SSL Certificate Error: code=" + error.getPrimaryError() + ", " + error.toString() + ". URL: " + error.getUrl());
+
+            String causeHumanReadable = "";
+
             switch (error.getPrimaryError()) {
                 case SslError.SSL_UNTRUSTED:
-                    message += "The certificate authority is not trusted.";
+                    causeHumanReadable += "The certificate authority is not trusted.";
                     break;
                 case SslError.SSL_EXPIRED:
-                    message += "The certificate has expired.";
+                    causeHumanReadable += "The certificate has expired.";
                     break;
                 case SslError.SSL_IDMISMATCH:
-                    message += "The certificate Hostname mismatch.";
+                    causeHumanReadable += "The certificate Hostname mismatch.";
                     break;
                 case SslError.SSL_NOTYETVALID:
-                    message += "The certificate is not yet valid.";
+                    causeHumanReadable += "The certificate is not yet valid.";
                     break;
                 default:
-                    message += "Check error code meaning from: https://developer.android.com/reference/android/net/http/SslError.";
+                    causeHumanReadable += "Check error code " + error.getPrimaryError() + " meaning from: https://developer.android.com/reference/android/net/http/SslError.";
                     break;
             }
-            message += " Do you want to continue anyway?";
 
-            LOG.w(LOG_TAG, message);
+            LOG.w(LOG_TAG, "Human readable cause: " + causeHumanReadable);
             LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString()));
 
-            builder.setTitle("SSL Certificate Error");
-            builder.setMessage(message);
-            builder.setPositiveButton("continue", new DialogInterface.OnClickListener() {
+            SharedPreferences.Editor edt = preferences.edit();
+            edt.remove(SP_KEY_ALIAS);
+            edt.apply();
+
+            builder.setTitle("Laitteen varmenne uusittu");
+            builder.setMessage("Sovellus suljetaan. Uusi varmenne otetaan käyttöön sovelluksen käynnistyttyä uudelleen.\n\nTekiset tiedot: [" + causeHumanReadable + "]");
+            builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    handler.proceed();
-                }
-            });
-            builder.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    handler.cancel();
+                    // handler.cancel(); // .proceed();
+                    System.exit(0);
                 }
             });
             final AlertDialog dialog = builder.create();
