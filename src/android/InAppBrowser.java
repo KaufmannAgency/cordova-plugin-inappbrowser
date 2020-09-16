@@ -100,6 +100,8 @@ import android.app.AlertDialog;
 import android.net.http.SslError;
 import android.content.DialogInterface;
 
+import android.app.admin.DeviceAdminReceiver;
+import android.content.RestrictionsManager;
 
 @SuppressLint("SetJavaScriptEnabled")
 public class InAppBrowser extends CordovaPlugin {
@@ -1614,6 +1616,13 @@ public class InAppBrowser extends CordovaPlugin {
             });
             final AlertDialog dialog = builder.create();
             dialog.show();
+        }
+    }
+
+    class DeviceAdminCertificatePrompt extends DeviceAdminReceiver {
+        public String onChoosePrivateKeyAlias (Context context, Intent intent, int uid, Uri uri, String alias) {
+            return ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
+                .getApplicationRestrictions().getString("certAlias");
         }
     }
 }
