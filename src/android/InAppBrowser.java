@@ -1622,8 +1622,16 @@ public class InAppBrowser extends CordovaPlugin {
     public static class DeviceAdminCertificatePrompt extends DeviceAdminReceiver {
         @Override
         public String onChoosePrivateKeyAlias (Context context, Intent intent, int uid, Uri uri, String alias) {
-            return ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
-                .getApplicationRestrictions().getString("certAlias");
+            try {
+                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() Invoked.");
+                String alias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
+                    .getApplicationRestrictions().getString("certAlias");
+                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() certAlias has set value: " + alias);
+                return alias;              
+            } catch (Exception e) {
+                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() error on reading alias: ", e);                
+                return null;
+            }
         }
     }
 }
