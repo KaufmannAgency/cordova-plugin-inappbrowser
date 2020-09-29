@@ -1623,7 +1623,7 @@ public class InAppBrowser extends CordovaPlugin {
         @Override
         public String onChoosePrivateKeyAlias (Context context, Intent intent, int uid, Uri uri, String alias) {
             try {
-                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() Invoked, alias:" + alias ", uri:" + uri);
+                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() Invoked, alias:" + alias + ", uri:" + uri);
                 String emmAlias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
                     .getApplicationRestrictions().getString("certAlias");
                 LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() certAlias has set value: " + emmAlias);
