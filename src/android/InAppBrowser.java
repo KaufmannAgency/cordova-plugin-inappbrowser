@@ -1507,7 +1507,7 @@ public class InAppBrowser extends CordovaPlugin {
         @Override
         public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
 
-            LOG.w(LOG_TAG, "onReceivedClientCertRequest() Called!");
+            LOG.w(LOG_TAG, "onReceivedClientCertRequest() - Invoked!");
 
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
@@ -1623,15 +1623,19 @@ public class InAppBrowser extends CordovaPlugin {
         @Override
         public String onChoosePrivateKeyAlias (Context context, Intent intent, int uid, Uri uri, String alias) {
             try {
-                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() Invoked, alias:" + alias + ", uri:" + uri);
+                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - Invoked, alias:" + alias + ", uri:" + uri);
                 String emmAlias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
                     .getApplicationRestrictions().getString("certAlias");
-                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() certAlias has set value: " + emmAlias);
+                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - certAlias has set value: " + emmAlias);
                 return emmAlias;              
             } catch (Exception e) {
-                LOG.w(LOG_TAG, "onChoosePrivateKeyAlias() error on reading alias: ", e);                
+                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - Error on reading alias: ", e);                
                 return null;
             }
+        }
+        @Override
+        public void onEnabled(Context context, Intent intent) {
+            LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onEnabled() - Invoked");            
         }
     }
 }
