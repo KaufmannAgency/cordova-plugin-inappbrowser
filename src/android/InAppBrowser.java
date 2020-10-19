@@ -1517,7 +1517,7 @@ public class InAppBrowser extends CordovaPlugin {
             if(alias == null) {
                 try {
                     LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
-                    alias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
+                    alias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
                         .getApplicationRestrictions().getString("certAlias");
                     LOG.w(LOG_TAG, "Alias set to:" + alias);
                 } catch (Exception e) {
