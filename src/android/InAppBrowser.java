@@ -1511,19 +1511,22 @@ public class InAppBrowser extends CordovaPlugin {
 
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
-            final String alias = sp.getString(SP_KEY_ALIAS, null);
+            String spAalias = sp.getString(SP_KEY_ALIAS, null);
 
             // If alias is not stored to shared preferences.
-            if(alias == null) {
+            String emmAlias = null;
+            if(spAalias == null) {
                 try {
                     LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
-                    alias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
+                    emmAlias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
                         .getApplicationRestrictions().getString("certAlias");
                     LOG.w(LOG_TAG, "Alias set to:" + alias);
                 } catch (Exception e) {
                     LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);                
                 }
             }
+
+            final String alias = spAlias == null ? emmAlias : spAlias;
 
             // If the alias is still null (not in SP and not in EMM), then force selection dialogue.
             if(alias == null) {
