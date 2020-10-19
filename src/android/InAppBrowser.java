@@ -1515,7 +1515,7 @@ public class InAppBrowser extends CordovaPlugin {
 
             // If alias is not stored to shared preferences.
             String emmAlias = null;
-            if(spAalias == null) {
+            if(spAlias == null) {
                 try {
                     LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
                     emmAlias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
