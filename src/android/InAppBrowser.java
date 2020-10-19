@@ -1511,7 +1511,7 @@ public class InAppBrowser extends CordovaPlugin {
 
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
-            String spAalias = sp.getString(SP_KEY_ALIAS, null);
+            String spAlias = sp.getString(SP_KEY_ALIAS, null);
 
             // If alias is not stored to shared preferences.
             String emmAlias = null;
@@ -1520,7 +1520,7 @@ public class InAppBrowser extends CordovaPlugin {
                     LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
                     emmAlias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
                         .getApplicationRestrictions().getString("certAlias");
-                    LOG.w(LOG_TAG, "Alias set to:" + alias);
+                    LOG.w(LOG_TAG, "Alias set to:" + emmAlias);
                 } catch (Exception e) {
                     LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);                
                 }
