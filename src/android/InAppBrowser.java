@@ -1513,6 +1513,18 @@ public class InAppBrowser extends CordovaPlugin {
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
             final String alias = sp.getString(SP_KEY_ALIAS, null);
 
+            // If alias is not stored to shared preferences.
+            if(alias == null) {
+                try {
+                    LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
+                    alias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
+                        .getApplicationRestrictions().getString("certAlias");
+                } catch (Exception e) {
+                    LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);                
+                }
+            }
+
+            // If the alias is still null (not in SP and not in EMM), then force selection dialogue.
             if(alias == null) {
                 KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
             } else {
