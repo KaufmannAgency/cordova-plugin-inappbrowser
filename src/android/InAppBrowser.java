@@ -1569,11 +1569,11 @@ public class InAppBrowser extends CordovaPlugin {
             public void alias(String alias) {
                 try {
                     if (alias != null) {
+                        PrivateKey pk = KeyChain.getPrivateKey(mContext, alias);
+                        X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
                         SharedPreferences.Editor edt = mPreferences.edit();
                         edt.putString(SP_KEY_ALIAS, alias);
                         edt.apply();
-                        PrivateKey pk = KeyChain.getPrivateKey(mContext, alias);
-                        X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
                         mRequest.proceed(pk, cert);
                     } else {
                         LOG.w(LOG_TAG, "Alias null, forcing user to pick one.");
