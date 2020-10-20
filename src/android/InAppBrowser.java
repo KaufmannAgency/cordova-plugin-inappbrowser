@@ -1515,14 +1515,8 @@ public class InAppBrowser extends CordovaPlugin {
                 } else if (emmAlias.trim().isEmpty()) {
                     return null;
                 }
-                LOG.w(LOG_TAG, "Checkin KeyChain for EMM-Alias:" + emmAlias);
-                PrivateKey pk = KeyChain.getPrivateKey(cordova.getActivity(), emmAlias);
-                X509Certificate[] cert = KeyChain.getCertificateChain(cordova.getActivity(), emmAlias);
-                LOG.w(LOG_TAG, "Returning EMM-Alias (checked from keychain):" + emmAlias);
+                LOG.w(LOG_TAG, "Returning EMM-Alias" + emmAlias);
                 return emmAlias;
-            } catch (KeyChainException e) {
-                LOG.w(LOG_TAG, "Failure in checing private key from keychain:", e);
-                return null;
             } catch (Exception e) {
                 LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);               
                 return null;
@@ -1537,33 +1531,27 @@ public class InAppBrowser extends CordovaPlugin {
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
             final String spAlias = sp.getString(SP_KEY_ALIAS, null);
-            LOG.w(LOG_TAG, "SP Alias: " + spAlias);
+            LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
             final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
-            LOG.w(LOG_TAG, "Alias resolved to:" + alias);
-
-            // If the alias is still null (not in SP and not in EMM), then force selection dialogue.
-            if(alias == null) {
-                KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
-            } else {
-                AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
-                    @Override
-                    protected String doInBackground(Void... params) {
-                        try {
-                            callback.alias(alias);
-                        } catch (Exception transientEx) {
-                            LOG.w(LOG_TAG, transientEx.toString());
-                        }
-                        return "";
+            LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to:" + alias);
+            AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
+                @Override
+                protected String doInBackground(Void... params) {
+                    try {
+                        callback.alias(alias);
+                    } catch (Exception transientEx) {
+                        LOG.w(LOG_TAG, transientEx.toString());
                     }
+                    return "";
+                }
 
-                    @Override
-                    protected void onPostExecute(String token) {
-                        LOG.w(LOG_TAG, "Access token retrieved:" + token);
-                    }
+                @Override
+                protected void onPostExecute(String token) {
+                    LOG.w(LOG_TAG, "Access token retrieved:" + token);
+                }
 
-                };
-                task.execute();
-            }
+            };
+            task.execute();
         }
 
         class AliasCallback implements KeyChainAliasCallback {
@@ -1588,14 +1576,15 @@ public class InAppBrowser extends CordovaPlugin {
                         X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
                         mRequest.proceed(pk, cert);
                     } else {
-                        mRequest.proceed(null, null);
+                        LOG.w(LOG_TAG, "Alias null, forcing user to pick one.");
+                        KeyChain.choosePrivateKeyAlias(mContext, this, new String[]{"RSA"}, null, mRequest.getHost(), mRequest.getPort(), null);
                     }
                 } catch (KeyChainException e) {
-                    String errorText = "Failed to load certificates";
-                    LOG.w(LOG_TAG, errorText, e);
+                    LOG.w(LOG_TAG, "KeyChainException with alias " + alias + ", forcing user to pick one.", e);
+                    KeyChain.choosePrivateKeyAlias(mContext, this, new String[]{"RSA"}, null, mRequest.getHost(), mRequest.getPort(), null);
                 } catch (InterruptedException e) {
-                    String errorText = "InterruptedException while loading certificates";
-                    LOG.w(LOG_TAG, errorText, e);
+                    LOG.w(LOG_TAG, "InterruptedException with alias " + alias + ", forcing user to pick one.", e);
+                    KeyChain.choosePrivateKeyAlias(mContext, this, new String[]{"RSA"}, null, mRequest.getHost(), mRequest.getPort(), null);
                 }
             }
         }
