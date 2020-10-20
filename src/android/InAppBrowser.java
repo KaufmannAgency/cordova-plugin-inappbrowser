@@ -1504,6 +1504,31 @@ public class InAppBrowser extends CordovaPlugin {
 
         public static final String SP_KEY_ALIAS = "SP_KEY_ALIAS";
 
+        private String getEmmAliasAtKeyChain() {
+            try {
+                LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
+                final String emmAlias 
+                    = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
+                    .getApplicationRestrictions().getString("certAlias");
+                if(emmAlias == null) {
+                    return null;
+                } else if (emmAlias.trim().isEmpty()) {
+                    return null;
+                }
+                LOG.w(LOG_TAG, "Checkin KeyChain for EMM-Alias:" + emmAlias);
+                PrivateKey pk = KeyChain.getPrivateKey(cordova.getActivity(), emmAlias);
+                X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
+                LOG.w(LOG_TAG, "Returning EMM-Alias (checked from keychain):" + emmAlias);
+                return emmAlias;
+            } catch (KeyChainException e) {
+                LOG.w(LOG_TAG, "Failure in checing private key from keychain:", e);
+                return null;
+            } catch (Exception e) {
+                LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);               
+                return null;
+            }
+        }
+
         @Override
         public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
 
@@ -1511,22 +1536,10 @@ public class InAppBrowser extends CordovaPlugin {
 
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
-            String spAlias = sp.getString(SP_KEY_ALIAS, null);
-
-            // If alias is not stored to shared preferences.
-            String emmAlias = null;
-            if(spAlias == null) {
-                try {
-                    LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
-                    emmAlias = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
-                        .getApplicationRestrictions().getString("certAlias");
-                    LOG.w(LOG_TAG, "Alias set to:" + emmAlias);
-                } catch (Exception e) {
-                    LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);                
-                }
-            }
-
-            final String alias = spAlias == null ? emmAlias : spAlias;
+            final String spAlias = sp.getString(SP_KEY_ALIAS, null);
+            LOG.w(LOG_TAG, "SP Alias: " + spAlias);
+            final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
+            LOG.w(LOG_TAG, "Alias resolved to:" + alias);
 
             // If the alias is still null (not in SP and not in EMM), then force selection dialogue.
             if(alias == null) {
