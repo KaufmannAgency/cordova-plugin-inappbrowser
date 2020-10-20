@@ -1515,7 +1515,7 @@ public class InAppBrowser extends CordovaPlugin {
                 } else if (emmAlias.trim().isEmpty()) {
                     return null;
                 }
-                LOG.w(LOG_TAG, "Returning EMM-Alias" + emmAlias);
+                LOG.w(LOG_TAG, "Returning EMM-Alias: " + emmAlias);
                 return emmAlias;
             } catch (Exception e) {
                 LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);               
@@ -1525,15 +1525,13 @@ public class InAppBrowser extends CordovaPlugin {
 
         @Override
         public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
-
             LOG.w(LOG_TAG, "onReceivedClientCertRequest() - Invoked!");
-
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
             final String spAlias = sp.getString(SP_KEY_ALIAS, null);
             LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
             final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
-            LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to:" + alias);
+            LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to: " + alias);
             AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
                 @Override
                 protected String doInBackground(Void... params) {
@@ -1569,9 +1567,11 @@ public class InAppBrowser extends CordovaPlugin {
             public void alias(String alias) {
                 try {
                     if (alias != null) {
+                        LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using alias: " + alias);
                         PrivateKey pk = KeyChain.getPrivateKey(mContext, alias);
                         X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
                         SharedPreferences.Editor edt = mPreferences.edit();
+                        LOG.w(LOG_TAG, "Storing alias to SP: " + alias);                        
                         edt.putString(SP_KEY_ALIAS, alias);
                         edt.apply();
                         mRequest.proceed(pk, cert);
