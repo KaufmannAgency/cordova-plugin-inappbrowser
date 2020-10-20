@@ -1517,7 +1517,7 @@ public class InAppBrowser extends CordovaPlugin {
                 }
                 LOG.w(LOG_TAG, "Checkin KeyChain for EMM-Alias:" + emmAlias);
                 PrivateKey pk = KeyChain.getPrivateKey(cordova.getActivity(), emmAlias);
-                X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
+                X509Certificate[] cert = KeyChain.getCertificateChain(cordova.getActivity(), emmAlias);
                 LOG.w(LOG_TAG, "Returning EMM-Alias (checked from keychain):" + emmAlias);
                 return emmAlias;
             } catch (KeyChainException e) {
