@@ -1580,7 +1580,7 @@ public class InAppBrowser extends CordovaPlugin {
                         KeyChain.choosePrivateKeyAlias(cordova.getActivity(), this, new String[]{"RSA"}, null, mRequest.getHost(), mRequest.getPort(), null);
                     }
                 } catch (KeyChainException e) {
-                    LOG.w(LOG_TAG, "KeyChainException with alias " + alias + ", forcing user to pick one.", e);
+                    LOG.w(LOG_TAG, "KeyChainException with alias " + alias + ", forcing user to pick one. Cause: " + e.getCause(), e);
                     KeyChain.choosePrivateKeyAlias(cordova.getActivity(), this, new String[]{"RSA"}, null, mRequest.getHost(), mRequest.getPort(), null);
                 } catch (InterruptedException e) {
                     LOG.w(LOG_TAG, "InterruptedException with alias " + alias + ", forcing user to pick one.", e);
