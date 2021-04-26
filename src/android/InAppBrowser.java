@@ -1530,7 +1530,8 @@ public class InAppBrowser extends CordovaPlugin {
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
             final String spAlias = sp.getString(SP_KEY_ALIAS, null);
             LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
-            final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
+            // final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
+            alias = getEmmAliasAtKeyChain();
             LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to: " + alias);
             AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
                 @Override
