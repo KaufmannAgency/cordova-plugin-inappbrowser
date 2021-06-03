@@ -1526,13 +1526,14 @@ public class InAppBrowser extends CordovaPlugin {
         @Override
         public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
             LOG.w(LOG_TAG, "onReceivedClientCertRequest() - Invoked!");
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+            // SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
-            final String spAlias = sp.getString(SP_KEY_ALIAS, null);
-            LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
+            // final String spAlias = sp.getString(SP_KEY_ALIAS, null);
+            // LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
             // final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
-            alias = getEmmAliasAtKeyChain();
-            LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to: " + alias);
+            final String alias = getEmmAliasAtKeyChain();
+            // LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to: " + alias);
+            LOG.w(LOG_TAG, "Alias resolved from EMM: " + alias);
             AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
                 @Override
                 protected String doInBackground(Void... params) {
@@ -1571,10 +1572,10 @@ public class InAppBrowser extends CordovaPlugin {
                         LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using alias: " + alias);
                         PrivateKey pk = KeyChain.getPrivateKey(mContext, alias);
                         X509Certificate[] cert = KeyChain.getCertificateChain(mContext, alias);
-                        SharedPreferences.Editor edt = mPreferences.edit();
-                        LOG.w(LOG_TAG, "Storing alias to SP: " + alias);                        
-                        edt.putString(SP_KEY_ALIAS, alias);
-                        edt.apply();
+                        // SharedPreferences.Editor edt = mPreferences.edit();
+                        // LOG.w(LOG_TAG, "Storing alias to SP: " + alias);                        
+                        // edt.putString(SP_KEY_ALIAS, alias);
+                        // edt.apply();
                         mRequest.proceed(pk, cert);
                     } else {
                         LOG.w(LOG_TAG, "Alias null, forcing user to pick one.");
@@ -1620,12 +1621,15 @@ public class InAppBrowser extends CordovaPlugin {
             LOG.w(LOG_TAG, "Human readable cause: " + causeHumanReadable);
             LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString()));
 
-            SharedPreferences.Editor edt = preferences.edit();
-            edt.remove(SP_KEY_ALIAS);
-            edt.apply();
+            // SharedPreferences.Editor edt = preferences.edit();
+            // edt.remove(SP_KEY_ALIAS);
+            // edt.apply();
 
-            builder.setTitle("Laitteen varmenne uusittu");
-            builder.setMessage("Sovellus suljetaan. Uusi varmenne otetaan käyttöön sovelluksen käynnistyttyä uudelleen.\n\nTekiset tiedot: [" + causeHumanReadable + "]");
+            // builder.setTitle("Laitteen varmenne uusittu");
+            // builder.setMessage("Sovellus suljetaan. Uusi varmenne otetaan käyttöön sovelluksen käynnistyttyä uudelleen.\n\nTekiset tiedot: [" + causeHumanReadable + "]");
+
+            builder.setTitle("Varmenneongelma");
+            builder.setMessage(causeHumanReadable);            
             builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
