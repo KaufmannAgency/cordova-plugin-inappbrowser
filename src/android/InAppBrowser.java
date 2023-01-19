@@ -1644,39 +1644,73 @@ public class InAppBrowser extends CordovaPlugin {
             }
         }
 
-        private void promptErrorAndSelect(AliasCallback callback, ClientCertRequest request, String alias, String issue, Throwable throwable, X509Certificate[] certificates) {            
-
+        private void promptErrorAndSelect(AliasCallback callback, ClientCertRequest request, String alias, String issue, Throwable throwable, X509Certificate[] certificates) {
             final String certChain = getCertInfo(certificates);
             final String path = request.getHost() + ":" + request.getPort();
-            String stackTrace = "<No Exception>";
+            final String stackTrace;
             if(throwable != null) {
                 java.io.Writer writer = new java.io.StringWriter();
                 throwable.printStackTrace(new java.io.PrintWriter(writer));
                 stackTrace = writer.toString();                
-            }
+            } else stackTrace = "<No Exception>";
 
-            if(CERT_ERROR_PROMPTS) { // TODO By log level?
-                final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
-                builder.setTitle("Varmenneongelma");
-                String body = "Alias: " + alias
-                    + "\n\n" + "Path: " + path
-                    + "\n\n" + "Cert: " + certChain
-                    + "\n\n" + "Issue: " + issue                    
-                    + "\n\n" + "Trace: " + stackTrace
-                    ;
-                builder.setMessage(body);
-                builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
-                        // System.exit(0);
-                    }
-                });
-                final AlertDialog dialog = builder.create();
-                dialog.show();
-            } else {
-                KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
-            }
+            Thread thread = new Thread(){
+                public void run(){
+                    android.os.Looper.prepare();//Call looper.prepare()
+                    android.os.Handler mHandler = new android.os.Handler() {
+                        public void handleMessage(android.os.Message msg) {
+                            if(CERT_ERROR_PROMPTS) { // TODO By log level?
+                                final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
+                                builder.setTitle("Varmenneongelma");
+                                String body = "Alias: " + alias
+                                    + "\n\n" + "Path: " + path
+                                    + "\n\n" + "Cert: " + certChain
+                                    + "\n\n" + "Issue: " + issue                    
+                                    + "\n\n" + "Trace: " + stackTrace
+                                    ;
+                                builder.setMessage(body);
+                                builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+                                        // System.exit(0);
+                                    }
+                                });
+                                final AlertDialog dialog = builder.create();
+                                dialog.show();
+                            } else {
+                                KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+                            }
+                        }
+                    };
+                    android.os.Looper.loop();
+                }
+            };
+            thread.start();
+
+            // if(CERT_ERROR_PROMPTS) { // TODO By log level?
+            //     final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
+            //     builder.setTitle("Varmenneongelma");
+            //     String body = "Alias: " + alias
+            //         + "\n\n" + "Path: " + path
+            //         + "\n\n" + "Cert: " + certChain
+            //         + "\n\n" + "Issue: " + issue                    
+            //         + "\n\n" + "Trace: " + stackTrace
+            //         ;
+            //     builder.setMessage(body);
+            //     builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+            //         @Override
+            //         public void onClick(DialogInterface dialog, int which) {
+            //             KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+            //             // System.exit(0);
+            //         }
+            //     });
+            //     final AlertDialog dialog = builder.create();
+            //     dialog.show();
+            // } else {
+            //     KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+            // }
+
         }
 
         @Override
