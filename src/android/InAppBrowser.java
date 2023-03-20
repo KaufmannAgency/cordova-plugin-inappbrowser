@@ -1511,52 +1511,19 @@ public class InAppBrowser extends CordovaPlugin {
          *
          *************************************************************************************************/
 
-        // public static final String SP_KEY_ALIAS = "SP_KEY_ALIAS";
-        public static final boolean CERT_ERROR_PROMPTS = true;
-        public String mAlias = null;
-
-        private String getEmmAliasAtKeyChain() {
-            try {
-                LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
-                final String emmAlias 
-                    = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
-                    .getApplicationRestrictions().getString("certAlias");
-                if(emmAlias == null) {
-                    return null;
-                } else if (emmAlias.trim().isEmpty()) {
-                    return null;
-                }
-                LOG.w(LOG_TAG, "Returning EMM-Alias: " + emmAlias);
-                return emmAlias;
-            } catch (Exception e) {
-                LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);               
-                return null;
-            }
-        }
-
         @Override
         public void onReceivedClientCertRequest(WebView view, final ClientCertRequest request) {
             LOG.w(LOG_TAG, "onReceivedClientCertRequest() invoked.");
             final KeyChainAliasCallback callback = new AliasCallback(cordova.getActivity(), request);
-
-            // SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
-            // final String spAlias = sp.getString(SP_KEY_ALIAS, null);
-            // LOG.w(LOG_TAG, "Alias in shared preferences: " + spAlias);
-            // final String alias = spAlias == null ? getEmmAliasAtKeyChain() : spAlias;
-            // final String alias = getEmmAliasAtKeyChain();
-            final String alias = mAlias == null ? getEmmAliasAtKeyChain() : mAlias;
-            // LOG.w(LOG_TAG, "Alias resolved (from EMM if none in SP) to: " + alias);
-            LOG.w(LOG_TAG, "Alias resolved from EMM: " + alias);
             
             AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
                 @Override
                 protected String doInBackground(Void... params) {
                     try {
-                        callback.alias(alias);
-                        // KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), alias);
-                        // KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+                        KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
                     } catch (Exception transientEx) {
                         LOG.w(LOG_TAG, transientEx.toString());
+                        promptErrorAndExit(request, null, "Exception while prompting alias.", transientEx, null);                        
                     }
                     return "";
                 }
@@ -1571,14 +1538,12 @@ public class InAppBrowser extends CordovaPlugin {
         }
 
         class AliasCallback implements KeyChainAliasCallback {
-            // private final SharedPreferences mPreferences;
             private final ClientCertRequest mRequest;
             private final Context mContext;
 
             public AliasCallback(Context context, ClientCertRequest request) {
                 mRequest = request;
                 mContext = context;
-                // mPreferences = PreferenceManager.getDefaultSharedPreferences(mContext);
                 LOG.w(LOG_TAG, "Alias callback due : " + mRequest.getHost() + ":" +  mRequest.getPort());                
             }
 
@@ -1588,33 +1553,26 @@ public class InAppBrowser extends CordovaPlugin {
                 X509Certificate[] cert = null;
                 try {
                     if (alias == null) {
-                        LOG.w(LOG_TAG, "Alias null, forcing user to pick one.");
-                        promptErrorAndSelect(this, mRequest, alias, "Alias null, forcing user to pick one.", null, cert);
+                        LOG.w(LOG_TAG, "Alias is null.");
+                        promptErrorAndExit(mRequest, alias, "Alias is null.", null, cert);
                     } else {
                         LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using alias: " + alias);
                         privateKey = KeyChain.getPrivateKey(mContext, alias);
                         cert = KeyChain.getCertificateChain(mContext, alias);
                         if(cert == null || cert.length == 0 || privateKey == null) {
                             LOG.w(LOG_TAG, "X509Certificate[] or PrivateKey not found, null or no right to access it.");
-                            promptErrorAndSelect(this, mRequest, alias, "X509Certificate[] not found or no right to access it.", null, cert);
+                            promptErrorAndExit(mRequest, alias, "X509Certificate[] not found or no right to access it.", null, cert);
                         } else {
                             LOG.w(LOG_TAG, "Certificate chain length: " + cert.length);
                             for (X509Certificate c : cert) {
                                 c.checkValidity();
                             }
-
-                            // SharedPreferences.Editor edt = mPreferences.edit();
-                            // LOG.w(LOG_TAG, "Storing alias to SP: " + alias);                        
-                            // edt.putString(SP_KEY_ALIAS, alias);
-                            // edt.apply();
-                            mAlias = alias;
-
                             mRequest.proceed(privateKey, cert);
                         }
                     }
                 } catch (KeyChainException | CertificateExpiredException | CertificateNotYetValidException | InterruptedException e) {
                     LOG.w(LOG_TAG, "Exception with alias " + alias + ", forcing user to pick one. Cause: " + e.getCause(), e);                    
-                    promptErrorAndSelect(this, mRequest, alias, e.getClass().getName() + ": " + e.getCause(), e, cert);
+                    promptErrorAndExit(mRequest, alias, e.getClass().getName() + ": " + e.getCause(), e, cert);
                 }
             }
         }
@@ -1651,10 +1609,8 @@ public class InAppBrowser extends CordovaPlugin {
                 return text.substring(0, length);
             }
         }
-        private boolean mPrompted = false;
-        private void promptErrorAndSelect(AliasCallback callback, ClientCertRequest request, String aAlias, String issue, Throwable throwable, X509Certificate[] certificates) {
-            final boolean doExit = (aAlias == null && mPrompted);
 
+        private void promptErrorAndExit(ClientCertRequest request, String aAlias, String issue, Throwable throwable, X509Certificate[] certificates) {
             final String certChain = getCertInfo(certificates);
             final String path = request.getHost() + ":" + request.getPort();
             final String stackTrace;
@@ -1667,31 +1623,23 @@ public class InAppBrowser extends CordovaPlugin {
 
             cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
-                    if(doExit || CERT_ERROR_PROMPTS) { // TODO By log level?
-                        final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
-                        builder.setTitle("Varmenneongelma");
-                        String body = "Next: " + (doExit ? "Giving up" : "Prompt for cert.")
-                            + "\n\n" + "Alias: " + alias
-                            + "\n\n" + "Path: " + path
-                            + "\n\n" + "Cert: " + certChain
-                            + "\n\n" + "Issue: " + issue                    
-                            + "\n\n" + "Trace: " + stackTrace
-                        ;
-                        builder.setMessage(body);
-                        builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                mPrompted = true;
-                                KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
-                                if(doExit) System.exit(0);
-                            }
-                        });
-                        final AlertDialog dialog = builder.create();
-                        dialog.show();
-                    } else {
-                        mPrompted = true;
-                        KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
-                    }
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
+                    builder.setTitle("Varmenneongelma");
+                    String body = "Alias: " + alias
+                        + "\n\n" + "Path: " + path
+                        + "\n\n" + "Cert: " + certChain
+                        + "\n\n" + "Issue: " + issue                    
+                        + "\n\n" + "Trace: " + stackTrace
+                    ;
+                    builder.setMessage(body);
+                    builder.setNeutralButton("Sulje", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            System.exit(0);
+                        }
+                    });
+                    final AlertDialog dialog = builder.create();
+                    dialog.show();
                 }
             });
         }
@@ -1744,27 +1692,6 @@ public class InAppBrowser extends CordovaPlugin {
             });
             final AlertDialog dialog = builder.create();
             dialog.show();
-        }
-    }
-
-    @Deprecated // Was experimental, not used any more.
-    public static class DeviceAdminCertificatePrompt extends DeviceAdminReceiver {
-        @Override
-        public String onChoosePrivateKeyAlias (Context context, Intent intent, int uid, Uri uri, String alias) {
-            try {
-                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - Invoked, alias:" + alias + ", uri:" + uri);
-                String emmAlias = ((RestrictionsManager)context.getSystemService(Context.RESTRICTIONS_SERVICE))
-                    .getApplicationRestrictions().getString("certAlias");
-                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - certAlias has set value: " + emmAlias);
-                return emmAlias;              
-            } catch (Exception e) {
-                LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onChoosePrivateKeyAlias() - Error on reading alias: ", e);                
-                return null;
-            }
-        }
-        @Override
-        public void onEnabled(Context context, Intent intent) {
-            LOG.w(LOG_TAG, "DeviceAdminCertificatePrompt.onEnabled() - Invoked");            
         }
     }
 }
