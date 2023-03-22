@@ -1557,6 +1557,11 @@ public class InAppBrowser extends CordovaPlugin {
                         promptErrorAndExit(mRequest, alias, "Alias is null.", null, cert);
                     } else {
                         LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using alias: " + alias);
+                        final String mysteryPrefix = "certificatInstallerConfig_";
+                        if(alias.startsWith(mysteryPrefix)) {
+                            alias.replace(mysteryPrefix, "");
+                            LOG.w(LOG_TAG, "Stripped " + mysteryPrefix  + " from alias, result: " + alias);
+                        }
                         privateKey = KeyChain.getPrivateKey(mContext, alias);
                         cert = KeyChain.getCertificateChain(mContext, alias);
                         if(cert == null || cert.length == 0 || privateKey == null) {
