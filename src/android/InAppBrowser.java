@@ -1556,14 +1556,12 @@ public class InAppBrowser extends CordovaPlugin {
                         LOG.w(LOG_TAG, "Alias is null.");
                         promptErrorAndExit(mRequest, alias, "Alias is null.", null, cert);
                     } else {
-                        LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using alias: " + alias);
+                        LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using (unstripped) alias: " + alias);
                         final String mysteryPrefix = "certificatInstallerConfig_";
-                        if(alias.startsWith(mysteryPrefix)) {
-                            alias.replace(mysteryPrefix, "");
-                            LOG.w(LOG_TAG, "Stripped " + mysteryPrefix  + " from alias, result: " + alias);
-                        }
-                        privateKey = KeyChain.getPrivateKey(mContext, alias);
-                        cert = KeyChain.getCertificateChain(mContext, alias);
+                        final String strippedAlias = alias.startsWith(mysteryPrefix) ? alias.replace(mysteryPrefix, "") : alias;
+                        LOG.w(LOG_TAG, "Fetching private key and certificate from KeyStore using (stripped) alias: " + strippedAlias);
+                        privateKey = KeyChain.getPrivateKey(mContext, strippedAlias);
+                        cert = KeyChain.getCertificateChain(mContext, strippedAlias);
                         if(cert == null || cert.length == 0 || privateKey == null) {
                             LOG.w(LOG_TAG, "X509Certificate[] or PrivateKey not found, null or no right to access it.");
                             promptErrorAndExit(mRequest, alias, "X509Certificate[] not found or no right to access it.", null, cert);
