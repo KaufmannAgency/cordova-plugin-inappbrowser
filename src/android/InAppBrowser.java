@@ -1520,7 +1520,11 @@ public class InAppBrowser extends CordovaPlugin {
                 @Override
                 protected String doInBackground(Void... params) {
                     try {
-                        KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+
+                        // Alternatives for alias resolve (direct use of EMM or ask from user):
+                        new AliasCallback(cordova.getActivity(), request).alias(getEmmAliasAtKeyChain());
+                        // KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+
                     } catch (Exception transientEx) {
                         LOG.w(LOG_TAG, transientEx.toString());
                         promptErrorAndExit(request, null, "Exception while prompting alias.", transientEx, null);                        
@@ -1535,6 +1539,25 @@ public class InAppBrowser extends CordovaPlugin {
 
             };
             task.execute();
+        }
+
+        private String getEmmAliasAtKeyChain() {
+            try {
+                LOG.w(LOG_TAG, "Reading alias from EMM-configuration.");
+                final String emmAlias 
+                    = ((RestrictionsManager)cordova.getActivity().getSystemService(Context.RESTRICTIONS_SERVICE))
+                    .getApplicationRestrictions().getString("certAlias");
+                if(emmAlias == null) {
+                    return null;
+                } else if (emmAlias.trim().isEmpty()) {
+                    return null;
+                }
+                LOG.w(LOG_TAG, "Returning EMM-Alias: " + emmAlias);
+                return emmAlias;
+            } catch (Exception e) {
+                LOG.w(LOG_TAG, "Error when reading alias from EMM-configuration: ", e);               
+                return null;
+            }
         }
 
         class AliasCallback implements KeyChainAliasCallback {
