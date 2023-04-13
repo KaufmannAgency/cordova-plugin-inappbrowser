@@ -1521,9 +1521,22 @@ public class InAppBrowser extends CordovaPlugin {
                 protected String doInBackground(Void... params) {
                     try {
 
-                        // Alternatives for alias resolve (direct use of EMM or ask from user):
-                        new AliasCallback(cordova.getActivity(), request).alias(getEmmAliasAtKeyChain());
+                        // Alternatives for alias resolve
+
+                        // 1. Direct use of EMM.
+                        // new AliasCallback(cordova.getActivity(), request).alias(getEmmAliasAtKeyChain());
+
+                        // 2. Always ask.
                         // KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+
+                        // 3. Stored alias in sp.
+                        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+                        final String spAlias = sp.getString(SP_KEY_ALIAS, null);
+                        if(spAlias != null && !spAlias.trim().isEmpty()) 
+                            new AliasCallback(cordova.getActivity(), request).alias(spAlias);
+                        else {
+                            KeyChain.choosePrivateKeyAlias(cordova.getActivity(), callback, new String[]{"RSA"}, null, request.getHost(), request.getPort(), null);
+                        }
 
                     } catch (Exception transientEx) {
                         LOG.w(LOG_TAG, transientEx.toString());
@@ -1540,6 +1553,8 @@ public class InAppBrowser extends CordovaPlugin {
             };
             task.execute();
         }
+
+        public static final String SP_KEY_ALIAS = "SP_KEY_ALIAS";
 
         private String getEmmAliasAtKeyChain() {
             try {
@@ -1593,6 +1608,15 @@ public class InAppBrowser extends CordovaPlugin {
                             for (X509Certificate c : cert) {
                                 c.checkValidity();
                             }
+
+                            if(alias != null && !alias.trim().isEmpty()) {
+                                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+                                SharedPreferences.Editor edt = sp.edit();
+                                LOG.w(LOG_TAG, "Storing alias to SP: " + alias);                        
+                                edt.putString(SP_KEY_ALIAS, alias);
+                                edt.apply();                                
+                            }
+
                             mRequest.proceed(privateKey, cert);
                         }
                     }
@@ -1649,6 +1673,12 @@ public class InAppBrowser extends CordovaPlugin {
 
             cordova.getActivity().runOnUiThread(new Runnable() {
                 public void run() {
+
+                    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(cordova.getActivity());
+                    SharedPreferences.Editor edt = sp.edit();
+                    edt.remove(SP_KEY_ALIAS);
+                    edt.apply();
+
                     final AlertDialog.Builder builder = new AlertDialog.Builder(cordova.getActivity());
                     builder.setTitle("Varmenneongelma");
                     String body = "Alias: " + alias
@@ -1700,12 +1730,9 @@ public class InAppBrowser extends CordovaPlugin {
             LOG.w(LOG_TAG, "Human readable cause: " + causeHumanReadable);
             LOG.w(LOG_TAG, "Certificate:" + (error.getCertificate() != null ? "null" : error.getCertificate().toString()));
 
-            // SharedPreferences.Editor edt = preferences.edit();
-            // edt.remove(SP_KEY_ALIAS);
-            // edt.apply();
-
-            // builder.setTitle("Laitteen varmenne uusittu");
-            // builder.setMessage("Sovellus suljetaan. Uusi varmenne otetaan käyttöön sovelluksen käynnistyttyä uudelleen.\n\nTekiset tiedot: [" + causeHumanReadable + "]");
+            SharedPreferences.Editor edt = preferences.edit();
+            edt.remove(SP_KEY_ALIAS);
+            edt.apply();
 
             builder.setTitle("Varmenneongelma");
             builder.setMessage(causeHumanReadable);            
