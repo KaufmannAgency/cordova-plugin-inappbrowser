@@ -2,6 +2,22 @@
 title: Inappbrowser
 description: Open an in-app browser window.
 ---
+## Fork notes (Paketti)
+
+This is the Kaufmann/NHG fork of [apache/cordova-plugin-inappbrowser](https://github.com/apache/cordova-plugin-inappbrowser),
+forked at upstream `master` `a162bd9` (2019-04-09, version `3.1.0-dev`); no `upstream` remote is configured.
+Everything below this section is the unmodified upstream README.
+
+- **Branches** (linear, each builds on the previous): `master` (= upstream) → `sslerr` (2021-06) →
+  `certprompt` (2023-01-20, `d60c7dd`) → **`simplified`** (2023-04-13, `89f6e91`, the checked-out branch).
+- **Fork changes (Android only, `src/android/InAppBrowser.java`):** TLS client-certificate support for the
+  in-app browser — `onReceivedClientCertRequest` takes the key alias stored in SharedPreferences
+  (`SP_KEY_ALIAS`) or prompts with `KeyChain.choosePrivateKeyAlias`, validates the chain and remembers the
+  alias; a `certificatInstallerConfig_` alias prefix is stripped (Fujitsu device workaround).
+  Any cert problem or `onReceivedSslError` shows a Finnish "Varmenneongelma" dialog and **exits the app**.
+- **Consumers:** none active. `pake-front` used `#simplified` for the mPollux SSO login until `e9c1e112`
+  (2026-02-05); only the unreleased `pake-specialist` still lists it, on **`#certprompt`**.
+
 <!--
 # license: Licensed to the Apache Software Foundation (ASF) under one
 #         or more contributor license agreements.  See the NOTICE file
